@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employee Performance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --surface2: #1c2130;
+    --surface3: #222840;
+    --border: #252d45;
+    --accent: #4f9cf9;
+    --accent2: #f97316;
+    --accent3: #a78bfa;
+    --accent4: #34d399;
+    --accent5: #fb7185;
+    --gold: #fbbf24;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --muted2: #94a3b8;
+  }
+
+  [data-theme="light"] {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8edf3;
+    --surface3: #dde4ed;
+    --border: #c9d4e0;
+    --accent: #2563eb;
+    --accent2: #ea6c00;
+    --accent3: #7c3aed;
+    --accent4: #059669;
+    --accent5: #e11d48;
+    --gold: #d97706;
+    --text: #1e293b;
+    --muted: #94a3b8;
+    --muted2: #64748b;
+  }
+
+  /* Theme toggle button */
+  .theme-toggle {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    line-height: 1;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .theme-toggle:hover { border-color: var(--accent); }
+  .theme-toggle .toggle-label { font-size: 0.75rem; font-weight: 500; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+    color: var(--accent);
+  }
+  .logo span { color: var(--text); }
+
+  .topbar-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+    align-items: center;
+  }
+
+  select, .btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 0.8rem;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  select:hover, .btn:hover { border-color: var(--accent); }
+  .btn { background: var(--accent); color: #fff; font-weight: 600; border-color: var(--accent); }
+  .btn:hover { background: #3b82f6; }
+  .btn.sec { background: var(--surface2); color: var(--text); border-color: var(--border); }
+  .btn.sec:hover { border-color: var(--accent); }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    padding: 10px 24px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 8px 16px;
+    border-radius: 7px 7px 0 0;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--muted);
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    background: var(--bg);
+    color: var(--accent);
+    border-color: var(--border);
+    border-bottom-color: var(--bg);
+    font-weight: 600;
+  }
+
+  /* MAIN */
+  .content { padding: 20px 24px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* SECTION TITLES */
+  .section-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 12px 12px 0 0;
+  }
+  .kpi-card.c1::before { background: var(--accent); }
+  .kpi-card.c2::before { background: var(--accent2); }
+  .kpi-card.c3::before { background: var(--accent3); }
+  .kpi-card.c4::before { background: var(--accent4); }
+  .kpi-card.c5::before { background: var(--gold); }
+  .kpi-card.c6::before { background: var(--accent5); }
+
+  .kpi-icon { font-size: 1.2rem; margin-bottom: 6px; }
+  .kpi-label {
+    font-size: 0.68rem;
+    color: var(--muted2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .kpi-sub { font-size: 0.72rem; color: var(--muted2); }
+  .kpi-trend { font-size: 0.72rem; font-weight: 600; margin-top: 4px; }
+  .trend-up { color: var(--accent4); }
+  .trend-down { color: var(--accent5); }
+  .trend-neutral { color: var(--muted2); }
+
+  /* CHARTS */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .chart-wide { grid-column: 1 / -1; }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chart-title { font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 700; }
+  .chart-subtitle { font-size: 0.72rem; color: var(--muted2); margin-top: 2px; }
+  .chart-container { position: relative; height: 250px; }
+  .chart-container.tall { height: 300px; }
+  .chart-container.short { height: 180px; }
+
+  /* METRIC PILLS */
+  .metric-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .metric-pill {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted2);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .metric-pill:hover { border-color: var(--accent); color: var(--text); }
+  .metric-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+
+  /* EMPLOYEE TABLE */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  th {
+    background: var(--surface2);
+    padding: 9px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted2);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  th:hover { color: var(--accent); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  .rank-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    font-weight: 700; font-size: 0.72rem;
+  }
+  .rank-1 { background: #fbbf24; color: #000; }
+  .rank-2 { background: #94a3b8; color: #000; }
+  .rank-3 { background: #cd7f32; color: #fff; }
+  .rank-other { background: var(--surface2); color: var(--muted2); }
+
+  .perf-bar-track { height: 4px; background: var(--border); border-radius: 2px; width: 60px; display: inline-block; vertical-align: middle; }
+  .perf-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); }
+
+  .tag {
+    display: inline-block; padding: 1px 7px; border-radius: 4px;
+    font-size: 0.65rem; font-weight: 600; letter-spacing: 0.3px;
+  }
+  .tag-hair { background: #1e3a5f40; color: var(--accent); border: 1px solid #4f9cf940; }
+  .tag-beauty { background: #3b1d6040; color: var(--accent3); border: 1px solid #a78bfa40; }
+  .tag-nails { background: #7c1d0040; color: var(--accent2); border: 1px solid #f9731640; }
+  .tag-other { background: var(--surface3); color: var(--muted2); border: 1px solid var(--border); }
+
+  .search-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 6px 12px; border-radius: 7px;
+    font-size: 0.78rem; font-family: 'Outfit', sans-serif;
+    outline: none; width: 180px; transition: border-color 0.2s;
+  }
+  .search-box:focus { border-color: var(--accent); }
+
+  /* PAGINATION */
+  .pagination {
+    display: flex; gap: 5px; align-items: center;
+    justify-content: center; padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .page-btn {
+    padding: 4px 9px; border-radius: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;
+  }
+  .page-btn:hover, .page-btn.active { border-color: var(--accent); color: var(--accent); }
+  .page-info { font-size: 0.72rem; color: var(--muted2); }
+
+  /* EMPLOYEE PROFILE CARD */
+  .emp-profile-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;
+  }
+  .emp-profile-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px;
+  }
+  .emp-avatar {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.1rem;
+    margin-bottom: 10px;
+  }
+  .emp-name { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+  .emp-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .emp-chip {
+    font-size: 0.65rem; padding: 2px 7px; background: var(--surface2);
+    border-radius: 5px; color: var(--muted2); border: 1px solid var(--border);
+  }
+
+  /* COMPARE */
+  .compare-setup {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; margin-bottom: 18px;
+  }
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+  .metric-bar-row {
+    display: grid; grid-template-columns: 130px 1fr 55px; gap: 8px;
+    align-items: center; font-size: 0.75rem; margin-bottom: 8px;
+  }
+  .bar-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+
+  /* TREND PAGE */
+  .trend-controls {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px;
+  }
+  .emp-select-wrap { display: flex; gap: 8px; align-items: center; }
+  label { font-size: 0.78rem; color: var(--muted2); }
+
+  /* MATRIX SELECTOR */
+  .matrix-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .matrix-pill-label {
+    font-size: 0.72rem;
+    color: var(--muted2);
+    font-weight: 600;
+    margin-right: 2px;
+    white-space: nowrap;
+  }
+  .matrix-pill {
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface3);
+    color: var(--muted2);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .matrix-pill:hover { border-color: var(--accent); color: var(--text); }
+  .matrix-pill.active[data-matrix="svc"]     { background:#1e3a5f; border-color:#4f9cf9; color:#93c5fd; }
+  .matrix-pill.active[data-matrix="prod"]    { background:#3b1d0a; border-color:#f97316; color:#fdba74; }
+  .matrix-pill.active[data-matrix="clients"] { background:#1a2e1a; border-color:#34d399; color:#6ee7b7; }
+  .matrix-pill.active[data-matrix="perf"]    { background:#2d1b4e; border-color:#a78bfa; color:#c4b5fd; }
+  .matrix-pill.active[data-matrix="all"]     { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  [data-theme="light"] .matrix-pill.active[data-matrix="svc"]     { background:#dbeafe; border-color:#3b82f6; color:#1d4ed8; }
+  [data-theme="light"] .matrix-pill.active[data-matrix="prod"]    { background:#ffedd5; border-color:#f97316; color:#c2410c; }
+  [data-theme="light"] .matrix-pill.active[data-matrix="clients"] { background:#dcfce7; border-color:#22c55e; color:#15803d; }
+  [data-theme="light"] .matrix-pill.active[data-matrix="perf"]    { background:#f3e8ff; border-color:#a855f7; color:#7e22ce; }
+
+  /* Column visibility by matrix */
+  .matrix-col-svc, .matrix-col-prod, .matrix-col-clients, .matrix-col-perf { display: table-cell; }
+
+  #emp-matrix-table.hide-svc .matrix-col-svc     { display: none; }
+  #emp-matrix-table.hide-prod .matrix-col-prod   { display: none; }
+  #emp-matrix-table.hide-clients .matrix-col-clients { display: none; }
+  #emp-matrix-table.hide-perf .matrix-col-perf   { display: none; }
+
+  /* MATRIX TABLE STYLES */
+  .matrix-group-row th {
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.3px;
+  }
+  .matrix-info-header {
+    background: var(--surface2) !important;
+    color: var(--muted2) !important;
+    border-right: 2px solid var(--border) !important;
+  }
+  .matrix-group-header { color: #fff !important; }
+  .matrix-svc { background: #1e3a5f !important; border-right: 2px solid var(--border) !important; }
+  .matrix-prod { background: #3b1d0a !important; border-right: 2px solid var(--border) !important; }
+  .matrix-clients { background: #1a2e1a !important; border-right: 2px solid var(--border) !important; }
+  .matrix-perf { background: #2d1b4e !important; }
+
+  [data-theme="light"] .matrix-svc { background: #bfdbfe !important; color: #1e3a5f !important; }
+  [data-theme="light"] .matrix-prod { background: #fed7aa !important; color: #7c2d12 !important; }
+  [data-theme="light"] .matrix-clients { background: #bbf7d0 !important; color: #14532d !important; }
+  [data-theme="light"] .matrix-perf { background: #e9d5ff !important; color: #3b0764 !important; }
+  [data-theme="light"] .matrix-group-header { color: inherit !important; }
+
+  .matrix-sub-row th {
+    font-size: 0.66rem;
+    padding: 7px 10px;
+    white-space: nowrap;
+  }
+  .matrix-info-col {
+    background: var(--surface2);
+    color: var(--muted2);
+  }
+  .matrix-info-col:last-of-type { border-right: 2px solid var(--border); }
+  .matrix-svc-col { background: #0d1f33; color: var(--muted2); }
+  .matrix-prod-col { background: #1e0d05; color: var(--muted2); }
+  .matrix-clients-col { background: #0d1a0d; color: var(--muted2); }
+  .matrix-perf-col { background: #180d2e; color: var(--muted2); }
+
+  [data-theme="light"] .matrix-svc-col { background: #eff6ff; }
+  [data-theme="light"] .matrix-prod-col { background: #fff7ed; }
+  [data-theme="light"] .matrix-clients-col { background: #f0fdf4; }
+  [data-theme="light"] .matrix-perf-col { background: #faf5ff; }
+
+  .sortable { cursor: pointer; user-select: none; }
+  .sortable:hover { color: var(--accent); }
+  .sort-arrow { opacity: 0.4; font-size: 0.6rem; }
+  .sort-arrow.asc::after { content: '▲'; }
+  .sort-arrow.desc::after { content: '▼'; }
+
+  /* Column color bands in body */
+  #emp-matrix-table tbody td.col-svc { background: #0d1f3318; }
+  #emp-matrix-table tbody td.col-prod { background: #3b1d0a12; }
+  #emp-matrix-table tbody td.col-clients { background: #1a2e1a12; }
+  #emp-matrix-table tbody td.col-info-last { border-right: 2px solid var(--border); }
+
+  [data-theme="light"] #emp-matrix-table tbody td.col-svc { background: #eff6ff88; }
+  [data-theme="light"] #emp-matrix-table tbody td.col-prod { background: #fff7ed88; }
+  [data-theme="light"] #emp-matrix-table tbody td.col-clients { background: #f0fdf488; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-wide { grid-column: auto; }
+    .compare-grid { grid-template-columns: 1fr; }
+    .emp-profile-grid { grid-template-columns: 1fr; }
+    .content { padding: 14px 16px; }
+    .topbar { padding: 10px 14px; }
+    .tabs { padding: 8px 14px 0; }
+  }
+
+  .empty { color: var(--muted2); font-size: 0.82rem; text-align: center; padding: 30px; }
+
+  /* YOY badges */
+  .yoy-up { color: var(--accent4); font-size: 0.68rem; font-weight: 600; }
+  .yoy-down { color: var(--accent5); font-size: 0.68rem; font-weight: 600; }
+
+  /* Highlighted numbers */
+  .num-accent { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .num-green { color: var(--accent4); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .num-orange { color: var(--accent2); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .num-purple { color: var(--accent3); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+
+  /* MONTH DETAIL GRID */
+  .month-detail-grid {
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; margin-top: 10px;
+  }
+  .month-cell {
+    background: var(--surface2); border-radius: 4px; padding: 4px 3px;
+    text-align: center; font-size: 0.6rem; color: var(--muted2);
+    border: 1px solid var(--border);
+  }
+  .month-cell .mc-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem; font-weight: 600; color: var(--text); display: block;
+  }
+  .month-cell .mc-label { display: block; color: var(--muted); font-size: 0.58rem; margin-top: 1px; }
+
+  /* Progress bar summary */
+  .perf-summary-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  }
+  .perf-summary-label { font-size: 0.72rem; color: var(--muted2); width: 100px; flex-shrink: 0; }
+  .perf-bar-full { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .perf-bar-inner { height: 100%; border-radius: 3px; }
+  .perf-summary-val { font-size: 0.72rem; font-weight: 600; width: 70px; text-align: right; flex-shrink: 0; }
+
+  /* Scorecards in overview */
+  .mini-stat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
+  }
+  .mini-stat {
+    background: var(--surface2); border-radius: 8px; padding: 10px 12px;
+    border: 1px solid var(--border);
+  }
+  .mini-stat-label { font-size: 0.65rem; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.6px; }
+  .mini-stat-val { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 600; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">JCBOUNCE &nbsp;·&nbsp; Employee Analytics</div>
+  <div class="topbar-filters">
+    <select id="filterYear">
+      <option value="2025">FY 2025</option>
+      <option value="2026">FY 2026</option>
+      <option value="all">All Years</option>
+    </select>
+    <select id="filterDept"><option value="all">All Departments</option></select>
+    <select id="filterDesg"><option value="all">All Designations</option></select>
+    <select id="filterSalon"><option value="all">All Salons</option></select>
+    <select id="filterBrand"><option value="all">All Brands</option></select>
+    <select id="filterMonth">
+      <option value="all">Full Year</option>
+      <option value="0">January</option><option value="1">February</option>
+      <option value="2">March</option><option value="3">April</option>
+      <option value="4">May</option><option value="5">June</option>
+      <option value="6">July</option><option value="7">August</option>
+      <option value="8">September</option><option value="9">October</option>
+      <option value="10">November</option><option value="11">December</option>
+    </select>
+    <button class="btn sec" onclick="resetFilters()">↺ Reset</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Toggle light/dark mode">☀️ <span class="toggle-label">Light</span></button>
+    <div style="font-size:0.72rem;color:var(--muted2);white-space:nowrap">Updated: Apr 13, 2026</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPage('employees')">👥 Employees</div>
+  <div class="tab" onclick="showPage('trends')">📈 Monthly Trends</div>
+  <div class="tab" onclick="showPage('yoy')">🔄 Year vs Year</div>
+</div>
+
+<div class="content">
+
+<!-- ==================== OVERVIEW PAGE ==================== -->
+<div id="page-overview" class="page" style="display:none">
+
+  <!-- Employee-level KPI cards only -->
+  <div id="kpi-grid" class="kpi-grid"></div>
+
+  <!-- Metric selector + main trend -->
+  <div class="chart-card chart-wide" style="margin-bottom:16px">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Monthly Performance Trend</div>
+        <div class="chart-subtitle">Individual metric across all selected employees • 2025</div>
+      </div>
+      <div class="metric-pills" id="trend-metric-pills"></div>
+    </div>
+    <div class="chart-container tall"><canvas id="chart-trend"></canvas></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Top 10 Employees — Service Sales</div>
+          <div class="chart-subtitle">Ranked by total service revenue</div>
+        </div>
+        <select id="top10-metric" onchange="renderTop10Bar()" style="font-size:0.72rem;padding:4px 8px;">
+          <option value="SERVICE SALES">Service Sales</option>
+          <option value="PRODUCT SALES">Product Sales</option>
+          <option value="TOTAL CLIENTS SERVICES">Clients Served</option>
+          <option value="RETENTION %">Avg Retention %</option>
+          <option value="SERVICE ABV">Service ABV</option>
+        </select>
+      </div>
+      <div class="chart-container tall"><canvas id="chart-top10"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Department Mix</div>
+          <div class="chart-subtitle">Employees by department (active)</div>
+        </div>
+      </div>
+      <div class="chart-container"><canvas id="chart-dept"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">New vs Existing Clients</div>
+          <div class="chart-subtitle">Monthly split across all employees</div>
+        </div>
+      </div>
+      <div class="chart-container"><canvas id="chart-clients"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Avg Retention % by Designation</div>
+          <div class="chart-subtitle">Top designations by 3-month retention</div>
+        </div>
+      </div>
+      <div class="chart-container"><canvas id="chart-retention-desg"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Top 10 table -->
+  <div class="section-title"><span class="dot" style="background:var(--gold)"></span> Top 10 Performers</div>
+  <div class="table-wrap">
+    <div class="scroll-x">
+      <table id="top10-table">
+        <thead><tr>
+          <th>#</th><th>Employee</th><th>Designation</th><th>Dept</th><th>Salon</th>
+          <th onclick="sortTop10('SERVICE SALES')" title="Sort">Svc Sales ↕</th>
+          <th onclick="sortTop10('PRODUCT SALES')" title="Sort">Prod Sales ↕</th>
+          <th onclick="sortTop10('TOTAL CLIENTS SERVICES')" title="Sort">Clients ↕</th>
+          <th onclick="sortTop10('RETENTION %')" title="Sort">Retention % ↕</th>
+          <th onclick="sortTop10('SERVICE ABV')" title="Sort">Svc ABV ↕</th>
+          <th>Tenure</th>
+        </tr></thead>
+        <tbody id="top10-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== EMPLOYEES PAGE ==================== -->
+<div id="page-employees" class="page active">
+  <div class="table-wrap">
+    <div class="table-header">
+      <div class="section-title" style="margin:0"><span class="dot" style="background:var(--accent3)"></span> All Employees</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input class="search-box" id="emp-search" placeholder="Search name / code..." oninput="renderEmpTable()">
+        <select id="emp-sort" onchange="renderEmpTable()" style="width:200px">
+          <option value="SERVICE SALES">Sort: Svc Sales Total</option>
+          <option value="PRODUCT SALES">Sort: Prod Sales Total</option>
+          <option value="TOTAL CLIENTS SERVICES">Sort: Total Clients</option>
+          <option value="RETENTION %">Sort: Retention %</option>
+          <option value="SERVICE ABV">Sort: Svc ABV Avg</option>
+          <option value="tenure">Sort: Tenure</option>
+        </select>
+        <span id="emp-count" style="font-size:0.72rem;color:var(--muted2)"></span>
+      </div>
+    </div>
+
+    <!-- Matrix Selector Pills -->
+    <div class="matrix-selector" id="matrix-selector">
+      <span class="matrix-pill-label">View Matrix:</span>
+      <button class="matrix-pill active" data-matrix="svc" onclick="switchMatrix('svc',this)">📊 Service Sales</button>
+      <button class="matrix-pill" data-matrix="prod" onclick="switchMatrix('prod',this)">🛍️ Product Sales</button>
+      <button class="matrix-pill" data-matrix="clients" onclick="switchMatrix('clients',this)">👥 Clients</button>
+      <button class="matrix-pill" data-matrix="perf" onclick="switchMatrix('perf',this)">⭐ Performance</button>
+      <button class="matrix-pill" data-matrix="all" onclick="switchMatrix('all',this)">📋 All Columns</button>
+    </div>
+
+    <div class="scroll-x">
+      <table id="emp-matrix-table">
+        <thead>
+          <!-- Group header row -->
+          <tr class="matrix-group-row" id="matrix-group-row">
+            <th colspan="6" class="matrix-info-header">Employee Info</th>
+            <th colspan="3" class="matrix-group-header matrix-svc matrix-col-svc">📊 Sales Matrix (Service)</th>
+            <th colspan="3" class="matrix-group-header matrix-prod matrix-col-prod">🛍️ Sales Matrix (Product)</th>
+            <th colspan="6" class="matrix-group-header matrix-clients matrix-col-clients">👥 Clients Matrix</th>
+            <th colspan="3" class="matrix-group-header matrix-perf matrix-col-perf">⭐ Performance</th>
+          </tr>
+          <!-- Sub-header row -->
+          <tr class="matrix-sub-row">
+            <th class="matrix-info-col">Code</th>
+            <th class="matrix-info-col">Employee</th>
+            <th class="matrix-info-col">Designation</th>
+            <th class="matrix-info-col">Dept</th>
+            <th class="matrix-info-col">Salon</th>
+            <th class="matrix-info-col">Tenure</th>
+            <!-- Service -->
+            <th class="matrix-svc-col matrix-col-svc sortable" onclick="empSortBy('SERVICE SALES')">Svc Sales Total <span class="sort-arrow" id="sarr-svc">↕</span></th>
+            <th class="matrix-svc-col matrix-col-svc sortable" onclick="empSortBy('SVC_AVG')">Monthly Avg <span class="sort-arrow" id="sarr-svcavg">↕</span></th>
+            <th class="matrix-svc-col matrix-col-svc sortable" onclick="empSortBy('SERVICE ABV')">Svc ABV Avg <span class="sort-arrow" id="sarr-svcabv">↕</span></th>
+            <!-- Product -->
+            <th class="matrix-prod-col matrix-col-prod sortable" onclick="empSortBy('PRODUCT SALES')">Prod Sales Total <span class="sort-arrow" id="sarr-prod">↕</span></th>
+            <th class="matrix-prod-col matrix-col-prod sortable" onclick="empSortBy('PROD_AVG')">Monthly Avg <span class="sort-arrow" id="sarr-prodavg">↕</span></th>
+            <th class="matrix-prod-col matrix-col-prod sortable" onclick="empSortBy('PRODUCT ABV')">Prod ABV Avg <span class="sort-arrow" id="sarr-prodabv">↕</span></th>
+            <!-- Clients -->
+            <th class="matrix-clients-col matrix-col-clients sortable" onclick="empSortBy('TOTAL CLIENTS SERVICES')">Total Clients <span class="sort-arrow" id="sarr-cl">↕</span></th>
+            <th class="matrix-clients-col matrix-col-clients sortable" onclick="empSortBy('NEW CLIENTS SERVICES')">New Clients <span class="sort-arrow" id="sarr-new">↕</span></th>
+            <th class="matrix-clients-col matrix-col-clients sortable" onclick="empSortBy('EXISTING CLIENTS SERVICES')">Existing Clients <span class="sort-arrow" id="sarr-exist">↕</span></th>
+            <th class="matrix-clients-col matrix-col-clients sortable" onclick="empSortBy('TOTAL CLIENTS PRODUCT')">Prod Clients <span class="sort-arrow" id="sarr-pcl">↕</span></th>
+            <th class="matrix-clients-col matrix-col-clients sortable" onclick="empSortBy('AVG_CL')">Avg Clients/Mo <span class="sort-arrow" id="sarr-avgcl">↕</span></th>
+            <th class="matrix-clients-col matrix-col-clients sortable" onclick="empSortBy('AVG_NEW')">Avg New/Mo <span class="sort-arrow" id="sarr-avgnew">↕</span></th>
+            <!-- Performance -->
+            <th class="matrix-perf-col matrix-col-perf sortable" onclick="empSortBy('RETENTION %')">Retention % <span class="sort-arrow" id="sarr-ret">↕</span></th>
+            <th class="matrix-perf-col matrix-col-perf sortable" onclick="empSortBy('PROD_PEN')">Prod Penetration %<span class="sort-arrow" id="sarr-pen">↕</span></th>
+            <th class="matrix-perf-col matrix-col-perf sortable" onclick="empSortBy('REPEAT_PCT')">Repeat % <span class="sort-arrow" id="sarr-rep">↕</span></th>
+          </tr>
+        </thead>
+        <tbody id="emp-table-body"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="emp-pagination"></div>
+  </div>
+</div>
+
+<!-- ==================== MONTHLY TRENDS PAGE ==================== -->
+<div id="page-trends" class="page">
+
+  <!-- Employee selector -->
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="trend-controls">
+      <label>Employee:</label>
+      <select id="trend-emp" style="min-width:220px" onchange="renderTrendsPage()">
+        <option value="">— All (aggregate) —</option>
+      </select>
+      <label>Year:</label>
+      <select id="trend-year" onchange="renderTrendsPage()">
+        <option value="2025">2025</option>
+        <option value="2026">2026</option>
+      </select>
+      <span id="trend-emp-info" style="font-size:0.75rem;color:var(--muted2)"></span>
+    </div>
+  </div>
+
+  <!-- Monthly scorecards -->
+  <div id="trend-monthly-cards" class="kpi-grid" style="margin-bottom:16px"></div>
+
+  <!-- Monthly charts -->
+  <div class="charts-grid">
+    <div class="chart-card chart-wide">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Monthly Service & Product Sales</div>
+          <div class="chart-subtitle">Month-by-month revenue trend</div>
+        </div>
+      </div>
+      <div class="chart-container tall"><canvas id="chart-monthly-sales"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Monthly Client Count</div><div class="chart-subtitle">New vs Existing vs Repeat</div></div>
+      </div>
+      <div class="chart-container"><canvas id="chart-monthly-clients"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Service & Product ABV</div><div class="chart-subtitle">Average bill value per month</div></div>
+      </div>
+      <div class="chart-container"><canvas id="chart-monthly-abv"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Retention % Monthly</div><div class="chart-subtitle">3-month repeat client rate</div></div>
+      </div>
+      <div class="chart-container"><canvas id="chart-monthly-ret"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Repeat Clients (3M)</div><div class="chart-subtitle">Absolute repeat client count monthly</div></div>
+      </div>
+      <div class="chart-container"><canvas id="chart-monthly-repeat"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Monthly data table -->
+  <div class="section-title"><span class="dot" style="background:var(--accent2)"></span> Monthly Breakdown Table</div>
+  <div class="table-wrap">
+    <div class="scroll-x">
+      <table id="monthly-table">
+        <thead><tr>
+          <th>Month</th><th>Svc Sales</th><th>Prod Sales</th>
+          <th>Total Revenue</th><th>Clients Svc</th><th>New Clients</th>
+          <th>Existing</th><th>Repeat (3M)</th><th>Retention %</th>
+          <th>Svc ABV</th><th>Prod ABV</th>
+        </tr></thead>
+        <tbody id="monthly-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== YEAR vs YEAR PAGE ==================== -->
+<div id="page-yoy" class="page">
+
+  <!-- Employee selector -->
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="trend-controls">
+      <label>Employee:</label>
+      <select id="yoy-emp" style="min-width:220px" onchange="renderYOYPage()">
+        <option value="">— All (aggregate) —</option>
+      </select>
+      <span id="yoy-emp-info" style="font-size:0.75rem;color:var(--muted2)"></span>
+    </div>
+  </div>
+
+  <!-- YOY KPI cards -->
+  <div id="yoy-kpi-grid" class="kpi-grid" style="margin-bottom:16px"></div>
+
+  <!-- YOY charts side by side -->
+  <div class="charts-grid">
+    <div class="chart-card chart-wide">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Service Sales — 2025 vs 2026 (Jan–Apr)</div>
+          <div class="chart-subtitle">Month-over-month year comparison • same months available</div>
+        </div>
+      </div>
+      <div class="chart-container tall"><canvas id="chart-yoy-svc"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Clients Served — YOY</div><div class="chart-subtitle">Jan–Apr comparison</div></div>
+      </div>
+      <div class="chart-container"><canvas id="chart-yoy-clients"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Retention % — YOY</div><div class="chart-subtitle">Jan–Apr comparison</div></div>
+      </div>
+      <div class="chart-container"><canvas id="chart-yoy-ret"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Service ABV — YOY</div><div class="chart-subtitle">Jan–Apr comparison</div></div>
+      </div>
+      <div class="chart-container"><canvas id="chart-yoy-abv"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Product Sales — YOY</div><div class="chart-subtitle">Jan–Apr comparison</div></div>
+      </div>
+      <div class="chart-container"><canvas id="chart-yoy-prod"></canvas></div>
+    </div>
+  </div>
+
+  <!-- YOY monthly table -->
+  <div class="section-title"><span class="dot" style="background:var(--accent4)"></span> Year-over-Year Monthly Comparison</div>
+  <div class="table-wrap">
+    <div class="scroll-x">
+      <table id="yoy-table">
+        <thead><tr>
+          <th>Month</th>
+          <th>Svc Sales 2025</th><th>Svc Sales 2026</th><th>Svc Δ</th>
+          <th>Clients 2025</th><th>Clients 2026</th><th>Clients Δ</th>
+          <th>Retention 2025</th><th>Retention 2026</th><th>Ret Δ</th>
+          <th>ABV 2025</th><th>ABV 2026</th><th>ABV Δ</th>
+        </tr></thead>
+        <tbody id="yoy-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== COMPARE PAGE ==================== -->
+<div id="page-compare" class="page">
+  <div class="compare-setup">
+    <div class="section-title" style="margin-bottom:12px"><span class="dot" style="background:var(--accent2)"></span> Side-by-Side Employee Comparison</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <select id="cmp-desg" onchange="updateCompareEmployees()" style="min-width:190px">
+        <option value="">Select Designation...</option>
+      </select>
+      <select id="cmp-emp1" style="min-width:210px"><option value="">Employee A...</option></select>
+      <select id="cmp-emp2" style="min-width:210px"><option value="">Employee B...</option></select>
+      <select id="cmp-year" style="width:120px">
+        <option value="2025">2025</option><option value="2026">2026</option>
+      </select>
+      <button class="btn" onclick="runCompare()">Compare ▶</button>
+    </div>
+  </div>
+  <div id="compare-result"></div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+// ==================== DATA ====================
+// =====================================================================
+// GITHUB / DATA SOURCE CONFIGURATION
+// To use external data: replace the RAW_DATA below with a reference to
+// an externally loaded dataset. Example workflow:
+//   1. Convert EMPLOYEE_DATA_ONLINE.xlsx to data.js using the
+//      provided build_data.py script (see repository README)
+//   2. Include <script src="data.js"></script> before this script
+//   3. Remove or comment out the RAW_DATA const below
+// The data.js file should export: const RAW_DATA = [...];
+// =====================================================================
+
+const RAW_DATA = [{"code": "1065", "name": "SANTOSH VELU", "des": "CREATIVE DIRECTOR", "dep": "HAIR", "salon": "Lavelle Road", "tenure": 17.2, "year": 2025, "brand": "JCB", "SERVICE SALES": [1045325.0, 771812.0, 865242.0, 957923.0, 864315.0, 866467.0, 870073.0, 984922.0, 747849.0, 903026.0, 1035841.0, 1360389.0], "PRODUCT SALES": [141281.0, 112744.0, 142741.0, 176605.0, 104193.0, 108882.0, 109515.0, 169348.0, 96107.0, 168546.0, 164745.0, 240015.0], "SERVICE ABV": [6968.0, 6540.0, 6707.0, 6992.0, 6218.0, 6371.0, 6905.0, 6792.0, 6284.0, 7282.0, 7398.0, 8833.0], "PRODUCT ABV": [3445.0, 4697.0, 4604.0, 4204.0, 3256.0, 3754.0, 3650.0, 4704.0, 4576.0, 4815.0, 4018.0, 4528.0], "TOTAL CLIENTS SERVICES": [121.0, 101.0, 105.0, 119.0, 114.0, 111.0, 107.0, 125.0, 96.0, 94.0, 111.0, 120.0], "TOTAL CLIENTS PRODUCT": [41.0, 24.0, 29.0, 41.0, 31.0, 28.0, 27.0, 34.0, 21.0, 32.0, 37.0, 49.0], "EXISTING CLIENTS SERVICES": [110.0, 88.0, 99.0, 109.0, 104.0, 104.0, 102.0, 117.0, 90.0, 90.0, 101.0, 115.0], "NEW CLIENTS SERVICES": [11.0, 13.0, 6.0, 10.0, 10.0, 7.0, 5.0, 8.0, 6.0, 4.0, 10.0, 5.0], "3 MONTH REPEAT CLIENTS": [0.0, 36.0, 53.0, 75.0, 70.0, 68.0, 66.0, 70.0, 62.0, 60.0, 70.0, 67.0], "RETENTION %": [0.0, 30.0, 28.0, 32.0, 30.0, 30.0, 28.0, 31.0, 26.0, 26.0, 31.0, 33.0]}, {"code": "1065", "name": "SANTOSH VELU", "des": "CREATIVE DIRECTOR", "dep": "HAIR", "salon": "Lavelle Road", "tenure": 17.2, "year": 2026, "brand": "JCB", "SERVICE SALES": [852787.0, 1039613.0, 1020668.0, 509188.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "PRODUCT SALES": [168251.0, 147924.0, 163148.0, 92876.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "SERVICE ABV": [6270.0, 7644.0, 7674.0, 7072.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "PRODUCT ABV": [4807.0, 3997.0, 5098.0, 5159.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "TOTAL CLIENTS SERVICES": [106.0, 112.0, 108.0, 65.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "TOTAL CLIENTS PRODUCT": [33.0, 36.0, 31.0, 17.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "EXISTING CLIENTS SERVICES": [91.0, 95.0, 100.0, 59.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "NEW CLIENTS SERVICES": [15.0, 17.0, 8.0, 6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "3 MONTH REPEAT CLIENTS": [59.0, 66.0, 74.0, 38.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "RETENTION %": [26.0, 27.0, 30.0, 17.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, {"code": "1108", "name": "SONALI BHIMANI", "des": "ART DIRECTOR", "dep": "HAIR", "salon": "Bandra Pali", "tenure": 16.3, "year": 2025, "brand": "JCB", "SERVICE SALES": [731231.0, 452327.0, 483820.0, 565662.0, 466900.0, 556469.0, 604156.0, 552306.0, 473130.0, 736864.0, 1021767.0, 180191.0], "PRODUCT SALES": [193520.0, 184105.0, 125912.0, 130729.0, 119061.0, 83926.0, 113890.0, 91661.0, 72772.0, 155047.0, 185407.0, 16380.0], "SERVICE ABV": [7099.0, 6751.0, 6450.0, 7542.0, 7295.0, 6955.0, 8884.0, 6497.0, 7631.0, 8469.0, 11744.0, 11261.0], "PRODUCT ABV": [4607.0, 5938.0, 3597.0, 4841.0, 4579.0, 3357.0, 3349.0, 3666.0, 3638.0, 4845.0, 7416.0, 4095.0], "TOTAL CLIENTS SERVICES": [92.0, 59.0, 66.0, 67.0, 58.0, 66.0, 56.0, 73.0, 55.0, 71.0, 76.0, 15.0], "TOTAL CLIENTS PRODUCT": [42.0, 28.0, 33.0, 27.0, 26.0, 24.0, 32.0, 24.0, 18.0, 32.0, 25.0, 4.0], "EXISTING CLIENTS SERVICES": [82.0, 53.0, 63.0, 65.0, 54.0, 62.0, 53.0, 71.0, 49.0, 64.0, 72.0, 14.0], "NEW CLIENTS SERVICES": [10.0, 6.0, 3.0, 2.0, 4.0, 4.0, 3.0, 2.0, 6.0, 7.0, 4.0, 1.0], "3 MONTH REPEAT CLIENTS": [0.0, 22.0, 32.0, 41.0, 35.0, 42.0, 30.0, 38.0, 29.0, 35.0, 44.0, 9.0], "RETENTION %": [0.0, 24.0, 25.0, 25.0, 24.0, 29.0, 22.0, 28.0, 20.0, 24.0, 29.0, 6.0]}, {"code": "1108", "name": "SONALI BHIMANI", "des": "ART DIRECTOR", "dep": "HAIR", "salon": "Bandra Pali", "tenure": 16.3, "year": 2026, "brand": "JCB", "SERVICE SALES": [814334.0, 723458.0, 653074.0, 272736.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "PRODUCT SALES": [135117.0, 151224.0, 101306.0, 31033.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "SERVICE ABV": [9048.0, 9275.0, 8946.0, 8021.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "PRODUCT ABV": [3555.0, 4582.0, 4221.0, 2387.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "TOTAL CLIENTS SERVICES": [79.0, 63.0, 64.0, 33.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "TOTAL CLIENTS PRODUCT": [37.0, 32.0, 24.0, 12.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "EXISTING CLIENTS SERVICES": [69.0, 57.0, 61.0, 32.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "NEW CLIENTS SERVICES": [10.0, 6.0, 3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "3 MONTH REPEAT CLIENTS": [35.0, 30.0, 32.0, 17.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "RETENTION %": [27.0, 22.0, 25.0, 11.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}];
+
+const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const METRICS = ['SERVICE SALES','PRODUCT SALES','SERVICE ABV','PRODUCT ABV','TOTAL CLIENTS SERVICES','TOTAL CLIENTS PRODUCT','RETENTION %','3 MONTH REPEAT CLIENTS','EXISTING CLIENTS SERVICES','NEW CLIENTS SERVICES'];
+const COLORS = ['#4f9cf9','#f97316','#a78bfa','#34d399','#fbbf24','#fb7185','#22d3ee','#84cc16','#e879f9','#60a5fa'];
+
+let charts = {};
+let currentPage = 'employees';
+let empPage = 1;
+const EMP_PER_PAGE = 25;
+let top10SortKey = 'SERVICE SALES';
+
+// ==================== HELPERS ====================
+function fmtMoney(n) {
+  if (!n || isNaN(n)) return '₹0';
+  if (n >= 1e7) return '₹' + (n/1e7).toFixed(2) + 'Cr';
+  if (n >= 1e5) return '₹' + (n/1e5).toFixed(1) + 'L';
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+function fmtNum(n) {
+  if (!n || isNaN(n)) return '0';
+  if (n >= 1e7) return (n/1e7).toFixed(1) + 'Cr';
+  if (n >= 1e5) return (n/1e5).toFixed(1) + 'L';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return Math.round(n).toString();
+}
+function fmtPct(n) { return (n || 0).toFixed(1) + '%'; }
+function depTag(dep) {
+  const d = (dep||'').toLowerCase();
+  if (d.includes('hair')) return '<span class="tag tag-hair">HAIR</span>';
+  if (d.includes('beauty') || d.includes('spa') || d.includes('aesth')) return '<span class="tag tag-beauty">BEAUTY</span>';
+  if (d.includes('nail') || d.includes('mani') || d.includes('pedi')) return '<span class="tag tag-nails">NAILS</span>';
+  return `<span class="tag tag-other">${dep.slice(0,8)}</span>`;
+}
+function avatarColor(name) {
+  const colors = ['#4f9cf940','#f9731640','#a78bfa40','#34d39940','#fbbf2440','#fb718540'];
+  let h = 0; for (let c of name) h += c.charCodeAt(0);
+  return colors[h % colors.length];
+}
+
+// ==================== FILTERS ====================
+function getFilters() {
+  return {
+    year: document.getElementById('filterYear').value,
+    dept: document.getElementById('filterDept').value,
+    desg: document.getElementById('filterDesg').value,
+    salon: document.getElementById('filterSalon').value,
+    month: document.getElementById('filterMonth').value,
+    brand: document.getElementById('filterBrand') ? document.getElementById('filterBrand').value : 'all'
+  };
+}
+
+function getFiltered() {
+  const f = getFilters();
+  return RAW_DATA.filter(r => {
+    if (f.year !== 'all' && r.year !== parseInt(f.year)) return false;
+    if (f.dept !== 'all' && r.dep !== f.dept) return false;
+    if (f.desg !== 'all' && r.des !== f.desg) return false;
+    if (f.salon !== 'all' && r.salon !== f.salon) return false;
+    if (f.brand && f.brand !== 'all' && r.brand !== f.brand) return false;
+    return true;
+  });
+}
+
+function getVal(rec, metric) {
+  const f = getFilters();
+  const arr = rec[metric] || Array(12).fill(0);
+  if (f.month === 'all') return arr.reduce((a,b) => a + (b||0), 0);
+  return arr[parseInt(f.month)] || 0;
+}
+
+function getAvgVal(rec, metric) {
+  const vals = (rec[metric] || Array(12).fill(0)).filter(v => v > 0);
+  return vals.length ? vals.reduce((a,b) => a+b,0)/vals.length : 0;
+}
+
+function aggregateMonthly(data, metric) {
+  const totals = Array(12).fill(0);
+  data.forEach(r => {
+    const arr = r[metric] || Array(12).fill(0);
+    arr.forEach((v,i) => totals[i] += (v||0));
+  });
+  return totals;
+}
+
+function aggregateMonthlyAvg(data, metric) {
+  const totals = Array(12).fill(0);
+  const counts = Array(12).fill(0);
+  data.forEach(r => {
+    const arr = r[metric] || Array(12).fill(0);
+    arr.forEach((v,i) => { if (v > 0) { totals[i] += v; counts[i]++; } });
+  });
+  return totals.map((v,i) => counts[i] > 0 ? v/counts[i] : 0);
+}
+
+// ==================== POPULATE FILTERS ====================
+function populateFilters() {
+  const depts = [...new Set(RAW_DATA.map(r=>r.dep))].sort();
+  const desgs = [...new Set(RAW_DATA.map(r=>r.des))].sort();
+  const salons = [...new Set(RAW_DATA.map(r=>r.salon))].sort();
+
+  const sd = document.getElementById('filterDept');
+  depts.forEach(d => { const o=document.createElement('option'); o.value=d; o.text=d; sd.appendChild(o); });
+
+  const sg = document.getElementById('filterDesg');
+  desgs.forEach(d => { const o=document.createElement('option'); o.value=d; o.text=d; sg.appendChild(o); });
+
+  const ss = document.getElementById('filterSalon');
+  salons.forEach(d => { const o=document.createElement('option'); o.value=d; o.text=d; ss.appendChild(o); });
+
+  const brands = [...new Set(RAW_DATA.map(r=>r.brand).filter(Boolean))].sort();
+  const sb = document.getElementById('filterBrand');
+  if (sb) brands.forEach(d => { const o=document.createElement('option'); o.value=d; o.text=d; sb.appendChild(o); });
+
+  // Compare
+  const cd = document.getElementById('cmp-desg');
+  desgs.forEach(d => { const o=document.createElement('option'); o.value=d; o.text=d; cd.appendChild(o); });
+
+  // Trend employee selectors
+  const empList = [...new Map(RAW_DATA.map(r=>[r.code, r])).values()].sort((a,b)=>a.name.localeCompare(b.name));
+  ['trend-emp','yoy-emp'].forEach(id => {
+    const sel = document.getElementById(id);
+    empList.forEach(e => {
+      const o = document.createElement('option');
+      o.value = e.code;
+      o.text = `${e.name} (${e.code})`;
+      sel.appendChild(o);
+    });
+  });
+}
+
+function resetFilters() {
+  ['filterYear','filterDept','filterDesg','filterSalon','filterMonth'].forEach(id => {
+    const el = document.getElementById(id);
+    if (id === 'filterYear') el.value = '2025';
+    else el.value = 'all';
+  });
+  refreshAll();
+}
+
+// ==================== DESTROY CHART ====================
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+const CHART_DEFAULTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+  scales: {
+    x: { grid: { color: '#252d45' }, ticks: { color: '#64748b', font: { size: 10 } } },
+    y: { grid: { color: '#252d45' }, ticks: { color: '#64748b', font: { size: 10 } } }
+  }
+};
+
+// ==================== EMPLOYEE KPI (per-employee avg view) ====================
+function renderKPIs() {
+  const data = getFiltered();
+  // Aggregate per unique employee (use code+year as key since one employee has 2025 and 2026 records)
+  const f = getFilters();
+  const empMap = {};
+  data.forEach(r => {
+    const k = r.code;
+    if (!empMap[k]) empMap[k] = { svc:0, prod:0, clients:0, newCl:0, existCl:0, retSum:0, retCount:0, abvSum:0, abvCount:0, repeat:0 };
+    empMap[k].svc += getVal(r,'SERVICE SALES');
+    empMap[k].prod += getVal(r,'PRODUCT SALES');
+    empMap[k].clients += getVal(r,'TOTAL CLIENTS SERVICES');
+    empMap[k].newCl += getVal(r,'NEW CLIENTS SERVICES');
+    empMap[k].existCl += getVal(r,'EXISTING CLIENTS SERVICES');
+    const ret = getVal(r,'RETENTION %');
+    if (ret > 0) { empMap[k].retSum += ret; empMap[k].retCount++; }
+    const abv = getVal(r,'SERVICE ABV');
+    if (abv > 0) { empMap[k].abvSum += abv; empMap[k].abvCount++; }
+    empMap[k].repeat += getVal(r,'3 MONTH REPEAT CLIENTS');
+  });
+
+  const empCount = Object.keys(empMap).length;
+  if (empCount === 0) { document.getElementById('kpi-grid').innerHTML = '<div class="empty">No data</div>'; return; }
+
+  const vals = Object.values(empMap);
+  const avgSvc = vals.reduce((s,e)=>s+e.svc,0) / empCount;
+  const avgProd = vals.reduce((s,e)=>s+e.prod,0) / empCount;
+  const avgClients = vals.reduce((s,e)=>s+e.clients,0) / empCount;
+  const avgNew = vals.reduce((s,e)=>s+e.newCl,0) / empCount;
+  const retArr = vals.filter(e=>e.retCount>0).map(e=>e.retSum/e.retCount);
+  const avgRet = retArr.length ? retArr.reduce((a,b)=>a+b,0)/retArr.length : 0;
+  const abvArr = vals.filter(e=>e.abvCount>0).map(e=>e.abvSum/e.abvCount);
+  const avgAbv = abvArr.length ? abvArr.reduce((a,b)=>a+b,0)/abvArr.length : 0;
+  const avgRepeat = vals.reduce((s,e)=>s+e.repeat,0) / empCount;
+
+  const topEmp = vals.sort((a,b)=>b.svc-a.svc)[0] || {};
+
+  const kpis = [
+    { label: 'Avg Svc Sales / Employee', value: fmtMoney(avgSvc), sub: `${empCount} employees`, color:'c1', icon:'💰' },
+    { label: 'Avg Product Sales / Employee', value: fmtMoney(avgProd), sub: 'Per employee avg', color:'c2', icon:'🛍️' },
+    { label: 'Avg Clients Served', value: Math.round(avgClients).toLocaleString(), sub: 'Service clients per emp', color:'c3', icon:'👤' },
+    { label: 'Avg New Clients', value: Math.round(avgNew).toLocaleString(), sub: `${avgClients>0?((avgNew/avgClients)*100).toFixed(0):0}% of total clients`, color:'c4', icon:'✨' },
+    { label: 'Avg Retention %', value: fmtPct(avgRet), sub: '3-month repeat rate', color:'c5', icon:'🔁' },
+    { label: 'Avg Service ABV', value: fmtMoney(avgAbv), sub: 'Avg bill per visit', color:'c6', icon:'📋' },
+    { label: 'Avg Repeat Clients (3M)', value: Math.round(avgRepeat).toLocaleString(), sub: 'Per employee', color:'c1', icon:'⭐' },
+    { label: 'Active Employees', value: empCount, sub: 'In current selection', color:'c2', icon:'👥' },
+  ];
+
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k => `
+    <div class="kpi-card ${k.color}">
+      <div class="kpi-icon">${k.icon}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+// ==================== OVERVIEW CHARTS ====================
+function renderTrendChart() {
+  destroyChart('trend');
+  const data = getFiltered();
+  const selMetric = document.querySelector('.metric-pill.active')?.dataset.metric || 'SERVICE SALES';
+  const monthly = aggregateMonthly(data, selMetric);
+  const labels = MONTH_NAMES;
+
+  const ctx = document.getElementById('chart-trend');
+  if (!ctx) return;
+  const isRate = selMetric === 'RETENTION %';
+  charts['trend'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: selMetric,
+        data: isRate ? aggregateMonthlyAvg(data, selMetric) : monthly,
+        borderColor: '#4f9cf9',
+        backgroundColor: 'rgba(79,156,249,0.08)',
+        borderWidth: 2.5, fill: true, tension: 0.4,
+        pointBackgroundColor: '#4f9cf9', pointRadius: 4, pointHoverRadius: 7
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        ...CHART_DEFAULTS.scales,
+        y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v => isRate ? v.toFixed(1)+'%' : fmtNum(v) } }
+      }
+    }
+  });
+}
+
+function renderTop10Bar() {
+  destroyChart('top10');
+  const data = getFiltered();
+  const metric = document.getElementById('top10-metric').value;
+  const empAgg = {};
+  const empNames = {};
+  data.forEach(r => {
+    if (!empAgg[r.code]) { empAgg[r.code] = 0; empNames[r.code] = r.name; }
+    const v = getVal(r, metric);
+    if (metric === 'RETENTION %') {
+      empAgg[r.code] = (empAgg[r.code] + v) / (empAgg[r.code] > 0 ? 2 : 1);
+    } else {
+      empAgg[r.code] += v;
+    }
+  });
+  const sorted = Object.entries(empAgg).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const ctx = document.getElementById('chart-top10'); if (!ctx) return;
+  charts['top10'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(([code]) => empNames[code]?.split(' ')[0] || code),
+      datasets: [{ label: metric, data: sorted.map(([,v])=>v), backgroundColor: COLORS.map(c=>c+'99'), borderColor: COLORS, borderWidth: 1, borderRadius: 4 }]
+    },
+    options: {
+      ...CHART_DEFAULTS, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ...CHART_DEFAULTS.scales.x, ticks: { ...CHART_DEFAULTS.scales.x.ticks, callback: v => metric==='RETENTION %' ? v.toFixed(1)+'%' : fmtNum(v) } },
+        y: CHART_DEFAULTS.scales.y
+      }
+    }
+  });
+}
+
+function renderDeptChart() {
+  destroyChart('dept');
+  const data = getFiltered();
+  const empDept = {};
+  const seen = new Set();
+  data.forEach(r => {
+    if (seen.has(r.code)) return; seen.add(r.code);
+    empDept[r.dep] = (empDept[r.dep]||0) + 1;
+  });
+  const ctx = document.getElementById('chart-dept'); if (!ctx) return;
+  const entries = Object.entries(empDept).sort((a,b)=>b[1]-a[1]);
+  charts['dept'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: entries.map(([k])=>k),
+      datasets: [{ data: entries.map(([,v])=>v), backgroundColor: COLORS.map(c=>c+'cc'), borderColor: '#141720', borderWidth: 2 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 9 }, boxWidth: 10 } } } }
+  });
+}
+
+function renderClientsChart() {
+  destroyChart('clients-chart');
+  const data = getFiltered();
+  const newCl = aggregateMonthly(data,'NEW CLIENTS SERVICES');
+  const existCl = aggregateMonthly(data,'EXISTING CLIENTS SERVICES');
+  const ctx = document.getElementById('chart-clients'); if (!ctx) return;
+  charts['clients-chart'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MONTH_NAMES,
+      datasets: [
+        { label: 'Existing', data: existCl, backgroundColor: '#4f9cf960', borderColor: '#4f9cf9', borderWidth: 1, borderRadius: 4, stack: 'clients' },
+        { label: 'New', data: newCl, backgroundColor: '#34d39960', borderColor: '#34d399', borderWidth: 1, borderRadius: 4, stack: 'clients' }
+      ]
+    },
+    options: { ...CHART_DEFAULTS, plugins: { ...CHART_DEFAULTS.plugins, legend: { labels: { color: '#94a3b8', font:{size:10} } } } }
+  });
+}
+
+function renderRetentionDesgChart() {
+  destroyChart('ret-desg');
+  const data = getFiltered();
+  const desgMap = {};
+  data.forEach(r => {
+    const d = r.des;
+    if (!desgMap[d]) desgMap[d] = { sum:0, cnt:0 };
+    const v = getVal(r,'RETENTION %');
+    if (v > 0) { desgMap[d].sum += v; desgMap[d].cnt++; }
+  });
+  const entries = Object.entries(desgMap)
+    .filter(([,v])=>v.cnt>=2)
+    .map(([k,v])=>[k, v.sum/v.cnt])
+    .sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const ctx = document.getElementById('chart-retention-desg'); if (!ctx) return;
+  charts['ret-desg'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: entries.map(([k])=>k.length>22?k.slice(0,22)+'…':k),
+      datasets: [{ label: 'Avg Retention %', data: entries.map(([,v])=>v), backgroundColor: '#a78bfa90', borderColor: '#a78bfa', borderWidth: 1, borderRadius: 4 }]
+    },
+    options: {
+      ...CHART_DEFAULTS, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ...CHART_DEFAULTS.scales.x, ticks: { ...CHART_DEFAULTS.scales.x.ticks, callback: v => v.toFixed(1)+'%' } },
+        y: CHART_DEFAULTS.scales.y
+      }
+    }
+  });
+}
+
+// ==================== TOP 10 TABLE ====================
+function renderTop10Table() {
+  const data = getFiltered();
+  const empMap = {};
+  data.forEach(r => {
+    if (!empMap[r.code]) empMap[r.code] = { code:r.code, name:r.name, des:r.des, dep:r.dep, salon:r.salon, tenure:r.tenure, svc:0, prod:0, clients:0, retSum:0, retCnt:0, abvSum:0, abvCnt:0 };
+    empMap[r.code].svc += getVal(r,'SERVICE SALES');
+    empMap[r.code].prod += getVal(r,'PRODUCT SALES');
+    empMap[r.code].clients += getVal(r,'TOTAL CLIENTS SERVICES');
+    const ret = getVal(r,'RETENTION %');
+    if (ret > 0) { empMap[r.code].retSum += ret; empMap[r.code].retCnt++; }
+    const abv = getVal(r,'SERVICE ABV');
+    if (abv > 0) { empMap[r.code].abvSum += abv; empMap[r.code].abvCnt++; }
+  });
+
+  const sorted = Object.values(empMap).sort((a,b) => b[top10SortKey==='SERVICE SALES'?'svc':top10SortKey==='PRODUCT SALES'?'prod':top10SortKey==='TOTAL CLIENTS SERVICES'?'clients':'svc'] - a[top10SortKey==='SERVICE SALES'?'svc':top10SortKey==='PRODUCT SALES'?'prod':top10SortKey==='TOTAL CLIENTS SERVICES'?'clients':'svc']).slice(0, 10);
+
+  const maxSvc = Math.max(...sorted.map(e=>e.svc), 1);
+  const body = document.getElementById('top10-body');
+  body.innerHTML = sorted.map((e,i) => `
+    <tr>
+      <td><span class="rank-badge rank-${i<3?i+1:'other'}">${i+1}</span></td>
+      <td><strong>${e.name}</strong></td>
+      <td style="font-size:0.7rem;color:var(--muted2)">${e.des.length>22?e.des.slice(0,22)+'…':e.des}</td>
+      <td>${depTag(e.dep)}</td>
+      <td style="color:var(--muted2);font-size:0.72rem">${e.salon}</td>
+      <td class="num-accent">${fmtMoney(e.svc)}</td>
+      <td>${fmtMoney(e.prod)}</td>
+      <td>${Math.round(e.clients).toLocaleString()}</td>
+      <td class="num-green">${e.retCnt>0?fmtPct(e.retSum/e.retCnt):'—'}</td>
+      <td>${e.abvCnt>0?fmtMoney(e.abvSum/e.abvCnt):'—'}</td>
+      <td style="color:var(--muted2)">${e.tenure}y</td>
+    </tr>`).join('');
+}
+
+function sortTop10(key) { top10SortKey = key; renderTop10Table(); }
+
+// ==================== METRIC PILLS ====================
+function renderMetricPills() {
+  const pills = [
+    { key: 'SERVICE SALES', label: 'Svc Sales' },
+    { key: 'PRODUCT SALES', label: 'Prod Sales' },
+    { key: 'TOTAL CLIENTS SERVICES', label: 'Clients' },
+    { key: 'RETENTION %', label: 'Retention %' },
+    { key: 'SERVICE ABV', label: 'Svc ABV' },
+    { key: '3 MONTH REPEAT CLIENTS', label: 'Repeat' },
+    { key: 'NEW CLIENTS SERVICES', label: 'New Clients' },
+  ];
+  const c = document.getElementById('trend-metric-pills');
+  if (!c) return;
+  c.innerHTML = pills.map((p,i) => `
+    <span class="metric-pill ${i===0?'active':''}" data-metric="${p.key}" onclick="selectMetricPill(this)">${p.label}</span>
+  `).join('');
+}
+
+function selectMetricPill(el) {
+  document.querySelectorAll('.metric-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  renderTrendChart();
+}
+
+// ==================== EMPLOYEES TABLE ====================
+let empSortKey = 'SERVICE SALES';
+let empSortDir = -1;
+let activeMatrix = 'svc';
+
+function switchMatrix(m, btn) {
+  activeMatrix = m;
+  document.querySelectorAll('.matrix-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const tbl = document.getElementById('emp-matrix-table');
+  const all = ['svc','prod','clients','perf'];
+  if (m === 'all') {
+    all.forEach(x => tbl.classList.remove('hide-'+x));
+  } else {
+    all.forEach(x => {
+      if (x !== m) tbl.classList.add('hide-'+x);
+      else tbl.classList.remove('hide-'+x);
+    });
+  }
+}
+
+function empSortBy(key) {
+  if (empSortKey === key) empSortDir *= -1;
+  else { empSortKey = key; empSortDir = -1; }
+  renderEmpTable();
+}
+
+function renderEmpTable() {
+  const data = getFiltered();
+  const q = (document.getElementById('emp-search')?.value||'').toLowerCase();
+  const ddSort = document.getElementById('emp-sort')?.value || 'SERVICE SALES';
+  if (['SERVICE SALES','PRODUCT SALES','TOTAL CLIENTS SERVICES','RETENTION %','SERVICE ABV','tenure'].includes(ddSort) && ddSort !== empSortKey) {
+    empSortKey = ddSort; empSortDir = -1;
+  }
+
+  const f = getFilters();
+  const isSingleMonth = (f.month !== 'all');
+
+  const empMap = {};
+  data.forEach(r => {
+    if (!empMap[r.code]) empMap[r.code] = {
+      code:r.code, name:r.name, des:r.des, dep:r.dep, salon:r.salon, tenure:r.tenure,
+      svc:0, prod:0, clients:0, newCl:0, existCl:0, prodCl:0, repeat:0,
+      retSum:0, retCnt:0,
+      svcAbvSum:0, svcAbvCnt:0,
+      prodAbvSum:0, prodAbvCnt:0,
+      svcMonths:0, prodMonths:0, clMonths:0
+    };
+    const e = empMap[r.code];
+    const sv = getVal(r,'SERVICE SALES'); e.svc += sv;
+    const pv = getVal(r,'PRODUCT SALES'); e.prod += pv;
+    const cv = getVal(r,'TOTAL CLIENTS SERVICES'); e.clients += cv;
+    // Count actual non-zero months (not just records) for correct monthly averages
+    if (f.month === 'all') {
+      (r['SERVICE SALES']||[]).forEach(v=>{ if((v||0)>0) e.svcMonths++; });
+      (r['PRODUCT SALES']||[]).forEach(v=>{ if((v||0)>0) e.prodMonths++; });
+      (r['TOTAL CLIENTS SERVICES']||[]).forEach(v=>{ if((v||0)>0) e.clMonths++; });
+    } else {
+      if(sv>0) e.svcMonths++;
+      if(pv>0) e.prodMonths++;
+      if(cv>0) e.clMonths++;
+    }
+    e.newCl += getVal(r,'NEW CLIENTS SERVICES');
+    e.existCl += getVal(r,'EXISTING CLIENTS SERVICES');
+    e.prodCl += getVal(r,'TOTAL CLIENTS PRODUCT');
+    e.repeat += getVal(r,'3 MONTH REPEAT CLIENTS');
+    const ret = getVal(r,'RETENTION %'); if(ret>0){e.retSum+=ret;e.retCnt++;}
+    const sa = getVal(r,'SERVICE ABV'); if(sa>0){e.svcAbvSum+=sa;e.svcAbvCnt++;}
+    const pa = getVal(r,'PRODUCT ABV'); if(pa>0){e.prodAbvSum+=pa;e.prodAbvCnt++;}
+  });
+
+  let emps = Object.values(empMap).filter(e =>
+    !q || e.name.toLowerCase().includes(q) || e.code.toLowerCase().includes(q)
+  );
+
+  function getEmpVal(e, key) {
+    const sm = e.svcMonths||1, pm = e.prodMonths||1, cm = e.clMonths||1;
+    if (key==='SERVICE SALES') return e.svc;
+    if (key==='SVC_AVG') return isSingleMonth ? e.svc : e.svc/sm;
+    if (key==='SERVICE ABV') return e.svcAbvCnt>0?e.svcAbvSum/e.svcAbvCnt:0;
+    if (key==='PRODUCT SALES') return e.prod;
+    if (key==='PROD_AVG') return isSingleMonth ? e.prod : e.prod/pm;
+    if (key==='PRODUCT ABV') return e.prodAbvCnt>0?e.prodAbvSum/e.prodAbvCnt:0;
+    if (key==='TOTAL CLIENTS SERVICES') return e.clients;
+    if (key==='NEW CLIENTS SERVICES') return e.newCl;
+    if (key==='EXISTING CLIENTS SERVICES') return e.existCl;
+    if (key==='TOTAL CLIENTS PRODUCT') return e.prodCl;
+    if (key==='AVG_CL') return isSingleMonth ? e.clients : e.clients/cm;
+    if (key==='AVG_NEW') return isSingleMonth ? e.newCl : e.newCl/cm;
+    if (key==='RETENTION %') return e.retCnt>0?e.retSum/e.retCnt:0;
+    if (key==='PROD_PEN') return e.clients>0?(e.prodCl/e.clients)*100:0;
+    if (key==='REPEAT_PCT') return e.clients>0?e.repeat/e.clients*100:0;
+    if (key==='tenure') return e.tenure;
+    return e.svc;
+  }
+
+  emps.sort((a,b) => empSortDir * (getEmpVal(b,empSortKey) - getEmpVal(a,empSortKey)));
+
+  // Sort arrows
+  const arrowMap = {'SERVICE SALES':'svc','SVC_AVG':'svcavg','SERVICE ABV':'svcabv','PRODUCT SALES':'prod','PROD_AVG':'prodavg','PRODUCT ABV':'prodabv','TOTAL CLIENTS SERVICES':'cl','NEW CLIENTS SERVICES':'new','EXISTING CLIENTS SERVICES':'exist','TOTAL CLIENTS PRODUCT':'pcl','AVG_CL':'avgcl','AVG_NEW':'avgnew','RETENTION %':'ret','PROD_PEN':'pen','REPEAT_PCT':'rep'};
+  document.querySelectorAll('.sort-arrow').forEach(el => { el.className='sort-arrow'; el.textContent='↕'; });
+  const aa = document.getElementById('sarr-'+(arrowMap[empSortKey]||'svc'));
+  if (aa) { aa.textContent=''; aa.className='sort-arrow '+(empSortDir===-1?'desc':'asc'); }
+
+  document.getElementById('emp-count').textContent = `${emps.length} employees`;
+
+  const totalPages = Math.ceil(emps.length / EMP_PER_PAGE);
+  if (empPage > totalPages) empPage = 1;
+  const slice = emps.slice((empPage-1)*EMP_PER_PAGE, empPage*EMP_PER_PAGE);
+
+  document.getElementById('emp-table-body').innerHTML = slice.map((e) => {
+    const sm = e.svcMonths||1, pm = e.prodMonths||1, cm = e.clMonths||1;
+    const avgRet = e.retCnt>0 ? e.retSum/e.retCnt : 0;
+    const svcAbvAvg = e.svcAbvCnt>0 ? e.svcAbvSum/e.svcAbvCnt : 0;
+    const prodAbvAvg = e.prodAbvCnt>0 ? e.prodAbvSum/e.prodAbvCnt : 0;
+    const svcMonthAvg = isSingleMonth ? e.svc : e.svc/sm;
+    const prodMonthAvg = isSingleMonth ? e.prod : e.prod/pm;
+    const avgCl = isSingleMonth ? e.clients : e.clients/cm;
+    const avgNew = isSingleMonth ? e.newCl : e.newCl/cm;
+    const prodPen = e.clients>0 ? (e.prodCl/e.clients)*100 : 0;
+    const repeatPct = e.clients>0 ? e.repeat/e.clients*100 : 0;
+    const na = isSingleMonth ? '<span style="color:var(--muted);font-size:0.65rem">—</span>' : null;
+    return `<tr>
+      <td class="col-info-last" style="font-size:0.68rem;color:var(--muted2);font-family:'JetBrains Mono',monospace">${e.code}</td>
+      <td><strong style="font-size:0.8rem">${e.name}</strong></td>
+      <td style="font-size:0.68rem;color:var(--muted2);max-width:130px;white-space:normal;line-height:1.3">${e.des}</td>
+      <td>${depTag(e.dep)}</td>
+      <td style="font-size:0.72rem;color:var(--muted2)">${e.salon}</td>
+      <td class="col-info-last" style="color:var(--muted2);font-size:0.72rem">${e.tenure}y</td>
+      <td class="col-svc matrix-col-svc num-accent">${fmtMoney(e.svc)}</td>
+      <td class="col-svc matrix-col-svc" style="color:var(--muted2)">${na || fmtMoney(svcMonthAvg)}</td>
+      <td class="col-svc matrix-col-svc">${svcAbvAvg>0?fmtMoney(svcAbvAvg):'—'}</td>
+      <td class="col-prod matrix-col-prod" style="color:var(--accent2)">${fmtMoney(e.prod)}</td>
+      <td class="col-prod matrix-col-prod" style="color:var(--muted2)">${na || fmtMoney(prodMonthAvg)}</td>
+      <td class="col-prod matrix-col-prod">${prodAbvAvg>0?fmtMoney(prodAbvAvg):'—'}</td>
+      <td class="col-clients matrix-col-clients">${Math.round(e.clients).toLocaleString()}</td>
+      <td class="col-clients matrix-col-clients">${Math.round(e.newCl).toLocaleString()}</td>
+      <td class="col-clients matrix-col-clients">${Math.round(e.existCl).toLocaleString()}</td>
+      <td class="col-clients matrix-col-clients">${Math.round(e.prodCl).toLocaleString()}</td>
+      <td class="col-clients matrix-col-clients" style="color:var(--muted2)">${na || avgCl.toFixed(1)}</td>
+      <td class="col-clients matrix-col-clients" style="color:var(--muted2)">${na || avgNew.toFixed(1)}</td>
+      <td class="matrix-col-perf ${avgRet>0?'num-green':''}">${avgRet>0?fmtPct(avgRet):'—'}</td>
+      <td class="matrix-col-perf">${prodPen>0?prodPen.toFixed(1)+'%':'—'}</td>
+      <td class="matrix-col-perf ${repeatPct>0?'num-purple':''}">${repeatPct>0?repeatPct.toFixed(1)+'%':'—'}</td>
+    </tr>`;
+  }).join('');
+
+  // Re-apply matrix visibility
+  const tbl = document.getElementById('emp-matrix-table');
+  const all = ['svc','prod','clients','perf'];
+  if (activeMatrix === 'all') {
+    all.forEach(x => tbl.classList.remove('hide-'+x));
+  } else {
+    all.forEach(x => {
+      if (x !== activeMatrix) tbl.classList.add('hide-'+x);
+      else tbl.classList.remove('hide-'+x);
+    });
+  }
+
+  // Pagination
+  const pg = document.getElementById('emp-pagination');
+  if (totalPages <= 1) { pg.innerHTML=''; return; }
+  let html = `<span class="page-info">${(empPage-1)*EMP_PER_PAGE+1}–${Math.min(empPage*EMP_PER_PAGE,emps.length)} of ${emps.length}</span>`;
+  html += `<button class="page-btn" onclick="gotoEmpPage(${empPage-1})">‹</button>`;
+  for (let p = Math.max(1,empPage-2); p <= Math.min(totalPages, empPage+2); p++)
+    html += `<button class="page-btn ${p===empPage?'active':''}" onclick="gotoEmpPage(${p})">${p}</button>`;
+  html += `<button class="page-btn" onclick="gotoEmpPage(${empPage+1})">›</button>`;
+  pg.innerHTML = html;
+}
+
+function gotoEmpPage(p) {
+  const data = getFiltered();
+  const empMap = {};
+  data.forEach(r => { empMap[r.code] = true; });
+  const total = Math.ceil(Object.keys(empMap).length / EMP_PER_PAGE);
+  empPage = Math.max(1, Math.min(p, total));
+  renderEmpTable();
+}
+
+// ==================== TRENDS PAGE ====================
+function renderTrendsPage() {
+  const empCode = document.getElementById('trend-emp').value;
+  const year = parseInt(document.getElementById('trend-year').value);
+  const f = getFilters();
+
+  let data = RAW_DATA.filter(r => r.year === year);
+  if (empCode) {
+    data = data.filter(r => r.code === empCode);
+    const emp = data[0];
+    document.getElementById('trend-emp-info').textContent = emp ? `${emp.des} · ${emp.salon} · ${emp.tenure}y tenure` : '';
+  } else {
+    if (f.dept !== 'all') data = data.filter(r => r.dep === f.dept);
+    if (f.desg !== 'all') data = data.filter(r => r.des === f.desg);
+    if (f.salon !== 'all') data = data.filter(r => r.salon === f.salon);
+    document.getElementById('trend-emp-info').textContent = `${[...new Set(data.map(r=>r.code))].length} employees aggregated`;
+  }
+
+  const svc = aggregateMonthly(data,'SERVICE SALES');
+  const prod = aggregateMonthly(data,'PRODUCT SALES');
+  const clients = aggregateMonthly(data,'TOTAL CLIENTS SERVICES');
+  const newCl = aggregateMonthly(data,'NEW CLIENTS SERVICES');
+  const existCl = aggregateMonthly(data,'EXISTING CLIENTS SERVICES');
+  const repeat = aggregateMonthly(data,'3 MONTH REPEAT CLIENTS');
+  const ret = empCode ? (data[0]?.['RETENTION %'] || Array(12).fill(0)) : aggregateMonthlyAvg(data,'RETENTION %');
+  const svcAbv = empCode ? (data[0]?.['SERVICE ABV'] || Array(12).fill(0)) : aggregateMonthlyAvg(data,'SERVICE ABV');
+  const prodAbv = empCode ? (data[0]?.['PRODUCT ABV'] || Array(12).fill(0)) : aggregateMonthlyAvg(data,'PRODUCT ABV');
+
+  // Monthly KPI cards
+  const totalSvc = svc.reduce((a,b)=>a+b,0);
+  const totalProd = prod.reduce((a,b)=>a+b,0);
+  const totalClients = clients.reduce((a,b)=>a+b,0);
+  const totalNew = newCl.reduce((a,b)=>a+b,0);
+  const avgRet = ret.filter(v=>v>0).reduce((a,b)=>a+b,0) / (ret.filter(v=>v>0).length||1);
+  const avgAbv = svcAbv.filter(v=>v>0).reduce((a,b)=>a+b,0) / (svcAbv.filter(v=>v>0).length||1);
+
+  const cards = [
+    { label:'Total Svc Sales', val: fmtMoney(totalSvc), c:'c1', icon:'💰' },
+    { label:'Total Prod Sales', val: fmtMoney(totalProd), c:'c2', icon:'🛍️' },
+    { label:'Total Clients', val: totalClients.toLocaleString(), c:'c3', icon:'👤' },
+    { label:'Total New Clients', val: totalNew.toLocaleString(), c:'c4', icon:'✨' },
+    { label:'Avg Retention %', val: fmtPct(avgRet), c:'c5', icon:'🔁' },
+    { label:'Avg Svc ABV', val: fmtMoney(avgAbv), c:'c6', icon:'📋' },
+  ];
+  document.getElementById('trend-monthly-cards').innerHTML = cards.map(c=>`
+    <div class="kpi-card ${c.c}">
+      <div class="kpi-icon">${c.icon}</div>
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.val}</div>
+      <div class="kpi-sub">${year} · ${empCode ? 'Individual' : 'Aggregated'}</div>
+    </div>`).join('');
+
+  // Chart: monthly sales
+  destroyChart('monthly-sales');
+  const ctxS = document.getElementById('chart-monthly-sales'); if (!ctxS) return;
+  charts['monthly-sales'] = new Chart(ctxS, {
+    type: 'bar',
+    data: {
+      labels: MONTH_NAMES,
+      datasets: [
+        { label: 'Service Sales', data: svc, backgroundColor: '#4f9cf960', borderColor: '#4f9cf9', borderWidth: 1.5, borderRadius: 4, order: 2 },
+        { label: 'Product Sales', data: prod, backgroundColor: '#f9731660', borderColor: '#f97316', borderWidth: 1.5, borderRadius: 4, order: 2 },
+        { label: 'Total Revenue', data: svc.map((v,i)=>v+prod[i]), type:'line', borderColor:'#fbbf24', backgroundColor:'transparent', borderWidth:2, tension:0.4, pointRadius:3, order:1 }
+      ]
+    },
+    options: { ...CHART_DEFAULTS, scales: { ...CHART_DEFAULTS.scales, y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v=>fmtNum(v) } } } }
+  });
+
+  // Client chart
+  destroyChart('monthly-clients');
+  const ctxC = document.getElementById('chart-monthly-clients'); if (!ctxC) return;
+  charts['monthly-clients'] = new Chart(ctxC, {
+    type: 'bar',
+    data: {
+      labels: MONTH_NAMES,
+      datasets: [
+        { label: 'Existing', data: existCl, backgroundColor: '#4f9cf960', borderColor:'#4f9cf9', borderWidth:1, borderRadius:3, stack:'c' },
+        { label: 'New', data: newCl, backgroundColor: '#34d39960', borderColor:'#34d399', borderWidth:1, borderRadius:3, stack:'c' },
+        { label: 'Repeat (3M)', data: repeat, type:'line', borderColor:'#fbbf24', backgroundColor:'transparent', borderWidth:2, tension:0.4, pointRadius:3 }
+      ]
+    },
+    options: { ...CHART_DEFAULTS }
+  });
+
+  // ABV chart
+  destroyChart('monthly-abv');
+  const ctxA = document.getElementById('chart-monthly-abv'); if (!ctxA) return;
+  charts['monthly-abv'] = new Chart(ctxA, {
+    type: 'line',
+    data: {
+      labels: MONTH_NAMES,
+      datasets: [
+        { label: 'Svc ABV', data: svcAbv, borderColor:'#4f9cf9', backgroundColor:'#4f9cf910', borderWidth:2, tension:0.4, fill:true, pointRadius:3 },
+        { label: 'Prod ABV', data: prodAbv, borderColor:'#f97316', backgroundColor:'#f9731610', borderWidth:2, tension:0.4, fill:true, pointRadius:3 }
+      ]
+    },
+    options: { ...CHART_DEFAULTS, scales: { ...CHART_DEFAULTS.scales, y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v=>'₹'+v.toLocaleString('en-IN') } } } }
+  });
+
+  // Retention chart
+  destroyChart('monthly-ret');
+  const ctxR = document.getElementById('chart-monthly-ret'); if (!ctxR) return;
+  charts['monthly-ret'] = new Chart(ctxR, {
+    type: 'line',
+    data: {
+      labels: MONTH_NAMES,
+      datasets: [{ label:'Retention %', data: ret, borderColor:'#a78bfa', backgroundColor:'#a78bfa10', borderWidth:2, tension:0.4, fill:true, pointRadius:3 }]
+    },
+    options: { ...CHART_DEFAULTS, plugins:{legend:{display:false}}, scales: { ...CHART_DEFAULTS.scales, y: { ...CHART_DEFAULTS.scales.y, ticks:{...CHART_DEFAULTS.scales.y.ticks, callback:v=>v.toFixed(1)+'%'} } } }
+  });
+
+  // Repeat chart
+  destroyChart('monthly-repeat');
+  const ctxRp = document.getElementById('chart-monthly-repeat'); if (!ctxRp) return;
+  charts['monthly-repeat'] = new Chart(ctxRp, {
+    type: 'bar',
+    data: {
+      labels: MONTH_NAMES,
+      datasets: [{ label:'Repeat Clients', data: repeat, backgroundColor:'#34d39960', borderColor:'#34d399', borderWidth:1, borderRadius:4 }]
+    },
+    options: { ...CHART_DEFAULTS, plugins:{legend:{display:false}} }
+  });
+
+  // Monthly table
+  const tbody = document.getElementById('monthly-table-body');
+  tbody.innerHTML = MONTH_NAMES.map((m,i) => {
+    const totalRev = svc[i] + prod[i];
+    return `<tr>
+      <td><strong>${m}</strong></td>
+      <td class="num-accent">${fmtMoney(svc[i])}</td>
+      <td>${fmtMoney(prod[i])}</td>
+      <td class="num-orange">${fmtMoney(totalRev)}</td>
+      <td>${Math.round(clients[i]).toLocaleString()}</td>
+      <td class="num-green">${Math.round(newCl[i]).toLocaleString()}</td>
+      <td>${Math.round(existCl[i]).toLocaleString()}</td>
+      <td>${Math.round(repeat[i]).toLocaleString()}</td>
+      <td class="${ret[i]>25?'num-green':ret[i]>15?'num-orange':'num-purple'}">${fmtPct(ret[i])}</td>
+      <td>${fmtMoney(svcAbv[i])}</td>
+      <td>${fmtMoney(prodAbv[i])}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ==================== YEAR OVER YEAR PAGE ====================
+function renderYOYPage() {
+  const empCode = document.getElementById('yoy-emp').value;
+  let data25 = RAW_DATA.filter(r => r.year === 2025);
+  let data26 = RAW_DATA.filter(r => r.year === 2026);
+  const f = getFilters();
+
+  if (empCode) {
+    data25 = data25.filter(r => r.code === empCode);
+    data26 = data26.filter(r => r.code === empCode);
+    const emp = RAW_DATA.find(r=>r.code===empCode);
+    document.getElementById('yoy-emp-info').textContent = emp ? `${emp.des} · ${emp.salon}` : '';
+  } else {
+    if (f.dept !== 'all') { data25=data25.filter(r=>r.dep===f.dept); data26=data26.filter(r=>r.dep===f.dept); }
+    if (f.desg !== 'all') { data25=data25.filter(r=>r.des===f.desg); data26=data26.filter(r=>r.des===f.desg); }
+    if (f.salon !== 'all') { data25=data25.filter(r=>r.salon===f.salon); data26=data26.filter(r=>r.salon===f.salon); }
+    document.getElementById('yoy-emp-info').textContent = '';
+  }
+
+  const svc25 = aggregateMonthly(data25,'SERVICE SALES');
+  const svc26 = aggregateMonthly(data26,'SERVICE SALES');
+  const prod25 = aggregateMonthly(data25,'PRODUCT SALES');
+  const prod26 = aggregateMonthly(data26,'PRODUCT SALES');
+  const cl25 = aggregateMonthly(data25,'TOTAL CLIENTS SERVICES');
+  const cl26 = aggregateMonthly(data26,'TOTAL CLIENTS SERVICES');
+  const ret25 = empCode ? (data25[0]?.['RETENTION %']||Array(12).fill(0)) : aggregateMonthlyAvg(data25,'RETENTION %');
+  const ret26 = empCode ? (data26[0]?.['RETENTION %']||Array(12).fill(0)) : aggregateMonthlyAvg(data26,'RETENTION %');
+  const abv25 = empCode ? (data25[0]?.['SERVICE ABV']||Array(12).fill(0)) : aggregateMonthlyAvg(data25,'SERVICE ABV');
+  const abv26 = empCode ? (data26[0]?.['SERVICE ABV']||Array(12).fill(0)) : aggregateMonthlyAvg(data26,'SERVICE ABV');
+
+  // 2026 only has Jan-Apr data, compare those 4 months
+  const cmpMonths = 4;
+  const CL = MONTH_NAMES.slice(0,cmpMonths);
+
+  // YOY KPIs
+  const t25svc = svc25.slice(0,cmpMonths).reduce((a,b)=>a+b,0);
+  const t26svc = svc26.slice(0,cmpMonths).reduce((a,b)=>a+b,0);
+  const t25cl = cl25.slice(0,cmpMonths).reduce((a,b)=>a+b,0);
+  const t26cl = cl26.slice(0,cmpMonths).reduce((a,b)=>a+b,0);
+  const avg25ret = ret25.slice(0,cmpMonths).filter(v=>v>0); const avgRet25 = avg25ret.length ? avg25ret.reduce((a,b)=>a+b)/avg25ret.length : 0;
+  const avg26ret = ret26.slice(0,cmpMonths).filter(v=>v>0); const avgRet26 = avg26ret.length ? avg26ret.reduce((a,b)=>a+b)/avg26ret.length : 0;
+  const avg25abv = abv25.slice(0,cmpMonths).filter(v=>v>0); const avgAbv25 = avg25abv.length ? avg25abv.reduce((a,b)=>a+b)/avg25abv.length : 0;
+  const avg26abv = abv26.slice(0,cmpMonths).filter(v=>v>0); const avgAbv26 = avg26abv.length ? avg26abv.reduce((a,b)=>a+b)/avg26abv.length : 0;
+
+  function yoyKpi(label, v25, v26, fmt, icon, c) {
+    const pct = v25 > 0 ? ((v26-v25)/v25*100) : 0;
+    const trendClass = pct >= 0 ? 'trend-up' : 'trend-down';
+    const arrow = pct >= 0 ? '▲' : '▼';
+    return `<div class="kpi-card ${c}">
+      <div class="kpi-icon">${icon}</div>
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-value">${fmt(v26)}</div>
+      <div class="kpi-sub">2025: ${fmt(v25)}</div>
+      <div class="kpi-trend ${trendClass}">${arrow} ${Math.abs(pct).toFixed(1)}% YOY</div>
+    </div>`;
+  }
+
+  document.getElementById('yoy-kpi-grid').innerHTML = [
+    yoyKpi('Svc Sales (Jan–Apr)', t25svc, t26svc, fmtMoney, '💰', 'c1'),
+    yoyKpi('Clients Served (Jan–Apr)', t25cl, t26cl, v=>Math.round(v).toLocaleString(), '👤', 'c3'),
+    yoyKpi('Avg Retention % (Jan–Apr)', avgRet25, avgRet26, fmtPct, '🔁', 'c5'),
+    yoyKpi('Avg Svc ABV (Jan–Apr)', avgAbv25, avgAbv26, fmtMoney, '📋', 'c4'),
+  ].join('');
+
+  // Charts
+  function yoyChart(id, labels, d25, d26, fmt, title) {
+    destroyChart(id);
+    const ctx = document.getElementById('chart-yoy-'+id); if (!ctx) return;
+    charts[id] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: '2025', data: d25, backgroundColor: '#4f9cf960', borderColor:'#4f9cf9', borderWidth:1.5, borderRadius:4, barPercentage:0.4 },
+          { label: '2026', data: d26, backgroundColor: '#34d39960', borderColor:'#34d399', borderWidth:1.5, borderRadius:4, barPercentage:0.4 }
+        ]
+      },
+      options: {
+        ...CHART_DEFAULTS,
+        scales: { ...CHART_DEFAULTS.scales, y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v=>fmt(v) } } }
+      }
+    });
+  }
+
+  yoyChart('svc', CL, svc25.slice(0,4), svc26.slice(0,4), fmtNum, 'Service Sales');
+  yoyChart('clients', CL, cl25.slice(0,4), cl26.slice(0,4), v=>Math.round(v), 'Clients');
+  yoyChart('ret', CL, ret25.slice(0,4), ret26.slice(0,4), v=>v.toFixed(1)+'%', 'Retention %');
+  yoyChart('abv', CL, abv25.slice(0,4), abv26.slice(0,4), fmtNum, 'ABV');
+  yoyChart('prod', CL, prod25.slice(0,4), prod26.slice(0,4), fmtNum, 'Prod Sales');
+
+  // YOY table
+  const tbody = document.getElementById('yoy-table-body');
+  tbody.innerHTML = CL.map((m,i) => {
+    function pctCell(a,b) {
+      if (a===0) return '<td style="color:var(--muted2)">—</td>';
+      const p = ((b-a)/a*100);
+      const cls = p>=0?'yoy-up':'yoy-down';
+      return `<td class="${cls}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</td>`;
+    }
+    return `<tr>
+      <td><strong>${m}</strong></td>
+      <td>${fmtMoney(svc25[i])}</td><td class="num-green">${fmtMoney(svc26[i])}</td>${pctCell(svc25[i],svc26[i])}
+      <td>${Math.round(cl25[i]).toLocaleString()}</td><td class="num-green">${Math.round(cl26[i]).toLocaleString()}</td>${pctCell(cl25[i],cl26[i])}
+      <td>${fmtPct(ret25[i])}</td><td class="num-green">${fmtPct(ret26[i])}</td>${pctCell(ret25[i],ret26[i])}
+      <td>${fmtMoney(abv25[i])}</td><td class="num-green">${fmtMoney(abv26[i])}</td>${pctCell(abv25[i],abv26[i])}
+    </tr>`;
+  }).join('');
+}
+
+// ==================== COMPARE PAGE ====================
+function updateCompareEmployees() {
+  const desg = document.getElementById('cmp-desg').value;
+  const emps = desg ? [...new Map(RAW_DATA.filter(r=>r.des===desg).map(r=>[r.code,r])).values()] : [];
+  emps.sort((a,b)=>a.name.localeCompare(b.name));
+
+  ['cmp-emp1','cmp-emp2'].forEach((id,idx) => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = `<option value="">Employee ${idx===0?'A':'B'}...</option>`;
+    emps.forEach(e => {
+      const o = document.createElement('option');
+      o.value = e.code; o.text = `${e.name} (${e.code})`;
+      sel.appendChild(o);
+    });
+  });
+}
+
+function runCompare() {
+  const c1 = document.getElementById('cmp-emp1').value;
+  const c2 = document.getElementById('cmp-emp2').value;
+  const yr = parseInt(document.getElementById('cmp-year').value);
+  if (!c1 || !c2) { alert('Select two employees'); return; }
+
+  const r1 = RAW_DATA.find(r=>r.code===c1 && r.year===yr);
+  const r2 = RAW_DATA.find(r=>r.code===c2 && r.year===yr);
+  if (!r1 || !r2) { document.getElementById('compare-result').innerHTML = '<div class="empty">No data for selected year</div>'; return; }
+
+  const metrics = [
+    { key:'SERVICE SALES', label:'Service Sales', fmt:fmtMoney },
+    { key:'PRODUCT SALES', label:'Product Sales', fmt:fmtMoney },
+    { key:'TOTAL CLIENTS SERVICES', label:'Clients Served', fmt:v=>Math.round(v).toLocaleString() },
+    { key:'RETENTION %', label:'Avg Retention %', fmt:v=>v.toFixed(1)+'%', avg:true },
+    { key:'SERVICE ABV', label:'Avg Svc ABV', fmt:fmtMoney, avg:true },
+    { key:'NEW CLIENTS SERVICES', label:'New Clients', fmt:v=>Math.round(v).toLocaleString() },
+    { key:'3 MONTH REPEAT CLIENTS', label:'Repeat Clients', fmt:v=>Math.round(v).toLocaleString() },
+  ];
+
+  function empVal(rec, m) {
+    const arr = rec[m.key] || Array(12).fill(0);
+    const tot = arr.reduce((a,b)=>a+(b||0),0);
+    if (m.avg) { const valid=arr.filter(v=>v>0); return valid.length?valid.reduce((a,b)=>a+b)/valid.length:0; }
+    return tot;
+  }
+
+  function empCard(rec) {
+    const initials = rec.name.split(' ').slice(0,2).map(w=>w[0]).join('');
+    const colBg = avatarColor(rec.name);
+    return `<div class="emp-profile-card">
+      <div class="emp-avatar" style="background:${colBg}">${initials}</div>
+      <div class="emp-name">${rec.name}</div>
+      <div class="emp-chips">
+        <span class="emp-chip">${rec.code}</span>
+        <span class="emp-chip">${rec.des.length>20?rec.des.slice(0,20)+'…':rec.des}</span>
+        <span class="emp-chip">${rec.dep}</span>
+        <span class="emp-chip">${rec.salon}</span>
+        <span class="emp-chip">${rec.tenure}y tenure</span>
+      </div>
+      ${metrics.map(m => {
+        const v = empVal(rec, m);
+        const all = metrics.map(mx=>[empVal(r1,mx),empVal(r2,mx)]);
+        return `<div class="perf-summary-row">
+          <span class="perf-summary-label">${m.label}</span>
+          <div class="perf-bar-full"><div class="perf-bar-inner" style="background:var(--accent);width:${Math.min(100,v>0?(v/Math.max(empVal(r1,m),empVal(r2,m))||1)*100:0).toFixed(0)}%"></div></div>
+          <span class="perf-summary-val">${m.fmt(v)}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // Radarchart data
+  destroyChart('cmp-radar');
+  setTimeout(() => {
+    const maxVals = metrics.map(m => Math.max(empVal(r1,m), empVal(r2,m), 1));
+    const norm = (rec) => metrics.map((m,i) => Math.min(100, (empVal(rec,m)/maxVals[i])*100));
+    const ctx = document.getElementById('chart-cmp-radar');
+    if (!ctx) return;
+    charts['cmp-radar'] = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: metrics.map(m=>m.label),
+        datasets: [
+          { label: r1.name.split(' ')[0], data: norm(r1), borderColor:'#4f9cf9', backgroundColor:'#4f9cf920', pointRadius:3, borderWidth:2 },
+          { label: r2.name.split(' ')[0], data: norm(r2), borderColor:'#f97316', backgroundColor:'#f9731620', pointRadius:3, borderWidth:2 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color:'#94a3b8', font:{size:10} } } },
+        scales: { r: { angleLines:{color:'#252d45'}, grid:{color:'#252d45'}, pointLabels:{color:'#94a3b8',font:{size:9}}, ticks:{display:false} } }
+      }
+    });
+  }, 50);
+
+  document.getElementById('compare-result').innerHTML = `
+    <div class="compare-grid">${empCard(r1)}${empCard(r2)}</div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Performance Radar — ${yr}</div><div class="chart-subtitle">Normalized comparison across all KPIs</div></div>
+      </div>
+      <div class="chart-container" style="height:320px"><canvas id="chart-cmp-radar"></canvas></div>
+    </div>
+    <div class="chart-card" style="margin-top:16px">
+      <div class="chart-header">
+        <div><div class="chart-title">Monthly Service Sales Comparison</div></div>
+      </div>
+      <div class="chart-container"><canvas id="chart-cmp-monthly"></canvas></div>
+    </div>`;
+
+  setTimeout(() => {
+    const ctx2 = document.getElementById('chart-cmp-monthly');
+    if (!ctx2) return;
+    destroyChart('cmp-monthly');
+    charts['cmp-monthly'] = new Chart(ctx2, {
+      type: 'line',
+      data: {
+        labels: MONTH_NAMES,
+        datasets: [
+          { label: r1.name.split(' ')[0], data: r1['SERVICE SALES']||Array(12).fill(0), borderColor:'#4f9cf9', backgroundColor:'#4f9cf910', borderWidth:2, tension:0.4, pointRadius:3 },
+          { label: r2.name.split(' ')[0], data: r2['SERVICE SALES']||Array(12).fill(0), borderColor:'#f97316', backgroundColor:'#f9731610', borderWidth:2, tension:0.4, pointRadius:3 }
+        ]
+      },
+      options: { ...CHART_DEFAULTS, scales: { ...CHART_DEFAULTS.scales, y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v=>fmtNum(v) } } } }
+    });
+  }, 80);
+}
+
+// ==================== PAGE NAVIGATION ====================
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.tab')[['employees','trends','yoy'].indexOf(page)].classList.add('active');
+  currentPage = page;
+
+  if (page === 'employees') { empPage = 1; renderEmpTable(); }
+  if (page === 'trends') renderTrendsPage();
+  if (page === 'yoy') renderYOYPage();
+}
+
+// ==================== REFRESH ====================
+function refreshAll() {
+  if (currentPage === 'employees') {
+    empPage = 1; renderEmpTable();
+  } else if (currentPage === 'trends') {
+    renderTrendsPage();
+  } else if (currentPage === 'yoy') {
+    renderYOYPage();
+  }
+}
+
+// ==================== FILTER LISTENERS ====================
+['filterYear','filterDept','filterDesg','filterSalon','filterMonth','filterBrand'].forEach(id => {
+  const el = document.getElementById(id); if(el) el.addEventListener('change', refreshAll);
+});
+
+// ==================== THEME TOGGLE ====================
+function toggleTheme() {
+  const html = document.documentElement;
+  const btn = document.getElementById('theme-btn');
+  if (html.getAttribute('data-theme') === 'light') {
+    html.removeAttribute('data-theme');
+    btn.innerHTML = '☀️ <span class="toggle-label">Light</span>';
+  } else {
+    html.setAttribute('data-theme', 'light');
+    btn.innerHTML = '☀️ <span class="toggle-label">Light</span>';
+  }
+}
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', () => {
+  populateFilters();
+  empPage = 1; renderEmpTable();
+});
+</script>
+</body>
+</html>
